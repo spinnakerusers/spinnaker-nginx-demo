@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: nginxdemo
+  name: nginxdemo
+  namespace: nginx-dev
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: nginxdemo
+  template:
+    metadata:
+      labels:
+        k8s-app: nginxdemo
+      name: nginxdemo
+      namespace: nginx-dev
+    spec:
+      containers:
+        - image: '192.168.1.200:8088/spinnaker/spinnaker-nginx-demo:master'
+          imagePullPolicy: IfNotPresent
+          name: nginxdemo
+          ports:
+            - containerPort: 80
+              name: web
+              protocol: TCP
+      imagePullSecrets:
+        - name: myharborsecret
+      serviceAccountName: nginxdemo

@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx-dev
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyIxOTIuMTY4LjEuMjAwOjgwODgiOnsidXNlcm5hbWUiOiJhZG1pbiIsInBhc3N3b3JkIjoiSGFyYm9yMTIzNDUiLCJhdXRoIjoiWVdSdGFXNDZTR0Z5WW05eU1USXpORFU9In19fQ==
+kind: Secret
+metadata:
+  name: myharborsecret
+  namespace: nginx-dev
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: nginxdemo
+  name: nginxdemo
+  namespace: nginx-dev
+spec:
+  replicas: 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: nginxdemo
+  template:
+    metadata:
+      labels:
+        k8s-app: nginxdemo
+      name: nginxdemo
+      namespace: nginx-dev
+    spec:
+      containers:
+        - image: '192.168.1.200:8088/spinnaker/spinnaker-nginx-demo:master'
+          imagePullPolicy: Always
+          name: nginxdemo
+          ports:
+            - containerPort: 80
+              name: web
+              protocol: TCP
+      imagePullSecrets:
+        - name: myharborsecret
+      serviceAccountName: nginxdemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: nginxdemo
+  name: nginxdemo
+  namespace: nginx-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: nginxdemo
+  name: nginxdemo
+  namespace: nginx-dev
+spec:
+  ports:
+    - name: web
+      port: 80
+      targetPort: 80
+  selector:
+    k8s-app: nginxdemo
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: demonginx-service
+  namespace: nginx-dev
+spec:
+  rules:
+    - host: demonginx-dev.idevops.site
+      http:
+        paths:
+          - backend:
+              serviceName: nginxdemo
+              servicePort: 80
+            path: /
